@@ -1,167 +1,199 @@
-import sys
+ # Import the pygame library and initialise the game engine
 import pygame
 from random import randint
-
-# Initialize
 pygame.init()
-
-# Set screen size/dimensions
-SCREEN_WIDTH = 1080
-SCREEN_HEIGHT = 720
-
-# Create your screen
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("My Game")
-clock = pygame.time.Clock()
-
-# Load the player image
-player_image = pygame.image.load("player.png").convert_alpha()
-player_scale = 0.1
-player_image = pygame.transform.scale(player_image, (int(player_image.get_width() * player_scale), 
-int(player_image.get_height() * player_scale)))
-
-# Rescale the enemy image
-enemy_image = pygame.image.load("enemy.png").convert_alpha()
-enemy_scale = 0.1
-enemy_image = pygame.transform.scale(enemy_image, (int(enemy_image.get_width() * enemy_scale), 
-int(enemy_image.get_height() *enemy_scale)))
-
-# Load the coin image
-coin_image = pygame.image.load("coin.png").convert_alpha()  
-coin_scale = 0.2
-coin_image = pygame.transform.scale(coin_image, (int(coin_image.get_width() * coin_scale), 
-int(coin_image.get_height() * coin_scale)))
-
-# Load the platform image
-platform_image = pygame.image.load("platform.png").convert_alpha()
-platform_scale = 0.5
-platform_image = 
-pygame.transform.scale(platform_image,(int(platform_image.get_width() * platform_scale), 
-int(platform_image.get_height() * platform_scale)))
-
-# Color keys
+# Define some colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
+ 
+# Set the height and width of the screen
+SCREEN_HEIGHT = 480
+SCREEN_WIDTH = 600
+size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+# Create your screen
+screen = pygame.display.set_mode(size)
+pygame.display.set_caption("My Game")
+clock = pygame.time.Clock()
 
-# FPS
-FPS = 60
+# Load the player image
+player_image = pygame.image.load("player.png").convert_alpha()
 
-# Player attributes
+# Rescale the player image to the desired size
+player_scale = 0.1
+player_image = pygame.transform.scale(player_image, (int(player_image.get_width() * player_scale), int(player_image.get_height() * player_scale)))
+
+# Get the dimensions of your player's image
 player_width, player_height = player_image.get_size()
-player_speed = 3  
-player_jump_speed = 10
 
-# Create the player
+# Load the enemy image
+enemy_image = pygame.image.load("enemy.png").convert_alpha()  
+# Rescale the enemy image to the desired size
+enemy_scale = 0.1
+enemy_image = pygame.transform.scale(enemy_image, (int(enemy_image.get_width() * enemy_scale), int(enemy_image.get_height() * enemy_scale)))
+
+# Get the dimensions of your enemy's image
+enemy_width, enemy_height = enemy_image.get_size()
+
+
 class Player(pygame.sprite.Sprite):
+    # This class represents a player. It derives from the "Sprite" class in Pygame.
+
     def __init__(self):
+        # Call the parent class (Sprite) constructor
         super().__init__()
+
+        # Pass in the image for the player.
+        # Set the background color and set it to be transparent
         self.image = player_image
         self.image.set_colorkey(BLACK)
+        
+        # Fetch the rectangle object that has the dimensions of the image.
         self.rect = self.image.get_rect()
-        self.rect.x = 50
-        self.rect.y = SCREEN_HEIGHT - player_height - 30
+
+        self.rect.x = SCREEN_WIDTH // 2 - player_width // 2
+        self.rect.y = SCREEN_HEIGHT - player_height - 20
+
         self.velocity = [0, 0]
         self.lives = 3
-        self.jumping = False
-
-    def jump(self):
-        self.velocity[1] = -player_jump_speed
-        self.jumping = True
 
     def update(self):
-        self.velocity[0] = 0
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.velocity[0] -= player_speed
-        if keys[pygame.K_RIGHT]:
-            self.velocity[0] += player_speed
-        if keys[pygame.K_SPACE] and not self.jumping:
-            self.jump()
-        
         self.rect.x += self.velocity[0]
-        # Check for collision with the walls
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH
-
-        # Apply gravity
-        self.velocity[1] += 0.5
         self.rect.y += self.velocity[1]
-        # Check for collision with the ground
-        if self.rect.bottom >= SCREEN_HEIGHT - 30:
-            self.velocity[1] = 0
-            self.rect.bottom = SCREEN_HEIGHT - 30
-            self.jumping = False
+        # Check that you are within the boundaries of the screen
+        if self.rect.x >= SCREEN_WIDTH - player_width:
+            self.rect.x = SCREEN_WIDTH - player_width
+        if self.rect.x <= 0:
+            self.rect.x = 0
+        if self.rect.y > SCREEN_HEIGHT - player_height:
+            self.rect.y = SCREEN_HEIGHT - player_height
+        if self.rect.y < 0:
+            self.rect.y = 0
 
-    def collision(self):
-        self.lives -= 1
-        print(f"Lives: {self.lives}")
+    def moveRight(self, pixels):
+        self.velocity[0] = pixels
+
+    def moveLeft(self, pixels):
+        self.velocity[0] = -pixels
+
+    def moveUp(self, pixels):
+        self.velocity[1] = -pixels
+
+    def moveDown(self, pixels):
+        self.velocity[1] = pixels
+    
+    def stop(self):
+        self.velocity[0] = 0
+        self.velocity[1] = 0
 
 
-# Enemy Class
 class Enemy(pygame.sprite.Sprite):
+    # This class represents a enemy. It derives from the "Sprite" class in Pygame.
+
     def __init__(self):
+        # Call the parent class (Sprite) constructor
         super().__init__()
+
+        # Pass in the image for the enemy.
+        # Set the background color and set it to be transparent
         self.image = enemy_image
         self.image.set_colorkey(BLACK)
+        
+        # Fetch the rectangle object that has the dimensions of the image.
         self.rect = self.image.get_rect()
-        self.rect.x = SCREEN_WIDTH - 100
-        self.rect.y = randint(-100, SCREEN_HEIGHT - 100)
-        self.speed = randint(4, 8)
+
+        self.reset_position()
+        self.velocity = [randint(2, 4), randint(-3, 3)]
+
+    def reset_position(self):
+        self.rect.x = randint(0, SCREEN_WIDTH - enemy_width)
+        self.rect.y = 0
 
     def update(self):
-        self.rect.x -= self.speed
-        if self.rect.right <= 0:
-            self.rect.x = SCREEN_WIDTH - 100
-            self.rect.y = randint(-100, SCREEN_HEIGHT - 100)
-            self.speed = randint(4, 8)
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        if self.rect.x >= SCREEN_WIDTH - enemy_width:
+            self.velocity[0] = -self.velocity[0]
+        if self.rect.x <= 0:
+            self.velocity[0] = -self.velocity[0]
+        if self.rect.y > SCREEN_HEIGHT:
+            self.reset_position()
 
 
-# Coin Class
-class Coin(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.image = coin_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.x = randint(50, SCREEN_WIDTH - 100)
-        self.rect.y = randint(-100, SCREEN_HEIGHT - 100)
+# The player
+player = Player()
 
-    def update(self):
-        self.rect.x -= platform_speed
+# The enemy
+enemy = Enemy()
 
-
-# Platform Class
-class Platform(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.image = platform_image
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.x = randint(50, SCREEN_WIDTH - 100)
-        self.rect.y = SCREEN_HEIGHT - self.rect.height - 40
-
-    def update(self):
-        self.rect.x -= platform_speed
-
-
-# All sprites group
+# All the sprites in the game
 all_sprites_list = pygame.sprite.Group()
 
-# Player sprite
-player = Player()
+# Add the player to the list of objects
 all_sprites_list.add(player)
-
-# Enemy sprites
-enemy = Enemy()
 all_sprites_list.add(enemy)
 
-# Coin sprites
-coin = Coin()
-all_sprites_list.add(coin)
+# The loop will carry on until the user exits the game (e.g. clicks the close button).
+carryOn = True
+
+# The clock will be used to control how fast the screen updates
+clock = pygame.time.Clock()
+
+# Initialise player score
+score = 0
+
+# Initialise font
+font = pygame.font.Font('freesansbold.ttf', 32)
+
+# -------- Main Program Loop -----------
+while carryOn:
+    # --- Main event loop
+    for event in pygame.event.get():  # User did something
+        if event.type == pygame.QUIT:  # If user clicked close
+            carryOn = False  # Flag that we are done so we exit this loop
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_x:  # Pressing the x Key will quit the game
+                carryOn = False
+
+    # Moving the player
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        player.moveLeft(5)
+    if keys[pygame.K_RIGHT]:
+        player.moveRight(5)
+    if keys[pygame.K_UP]:
+        player.moveUp(5)
+    if keys[pygame.K_DOWN]:
+        player.moveDown(5)
+    if keys[pygame.K_SPACE]:
+        player.stop()
+
+    # --- Game logic should go here
+    all_sprites_list.update()
+    
+    # Check if the player and the enemy collide
+    if pygame.sprite.collide_mask(player, enemy):
+        player.lives -= 1
+        enemy.reset_position()        
+    
+    # --- Drawing code should go here
+    # First, clear the screen to black.
+    screen.fill(BLACK)
+    # Draw the player onto the screen
+    all_sprites_list.draw(screen)
+
+    # Draw Lives
+    text = font.render(str(player.lives), 1, WHITE)
+    screen.blit(text, (20, 10))
+    
+    # Now let's draw all the sprites in one go. (For now we only have 2 sprites!)
+    # --- Go ahead and update the screen with what we've drawn.
+    pygame.display.flip()
+
+    # --- Limit to 60 frames per second
+    clock.tick(60)
+
+pygame.quit()
